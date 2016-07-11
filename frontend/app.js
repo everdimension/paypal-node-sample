@@ -1,11 +1,23 @@
 import React, { PropTypes } from 'react';
 import ReactDOM from 'react-dom';
+import jsonResponseHandler from './jsonResponseHandler';
+import Success from './Success';
 
 class App extends React.Component {
   constructor() {
     super();
     this.handleSubmit = this.handleSubmit.bind(this);
-    this.state = { loading: false };
+    this.state = {
+      loading: false,
+      redirecting: false,
+      isSuccess: false,
+    };
+  }
+
+  componentWillMount() {
+    this.setState({
+      isSuccess: window.location.search.indexOf('success') !== -1,
+    });
   }
 
   handleSubmit(evt) {
@@ -14,18 +26,22 @@ class App extends React.Component {
     fetch('/api/payWithPaypal', {
       method: 'POST'
     })
-      .then(res => res.json())
+      .then(jsonResponseHandler)
       .then(res => {
-        this.setState({ loading: false });
+        this.setState({ loading: false, redirecting: true });
         window.location.href = res.approval_url;
       })
       .catch(err => {
         console.warn(err);
         this.setState({ loading: false });
+        throw err;
       });
   }
 
   render() {
+    if (this.state.isSuccess) {
+      return <Success />
+    }
     return (
       <form onSubmit={this.handleSubmit}>
         Paypal form
@@ -45,9 +61,13 @@ class App extends React.Component {
         >
           {this.state.loading ?
             'loading...' :
-            'pay with paypal $$$'
+            'pay with paypal $1'
           }
         </button>
+        {this.state.redirecting ?
+          <p>Redirecting to paypal...</p> :
+          null
+        }
       </form>
     );
   }
